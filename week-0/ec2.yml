@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: os-keypair
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium]
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0c2d06d50ce30b442
+Resources:
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref 'ImageId'
+      InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyName'
+      BlockDeviceMappings: 
+      - DeviceName: "/dev/xvda"
+        Ebs: 
+          VolumeType: "gp2"
+          # Iops: "100"
+          DeleteOnTermination: "true"
+          VolumeSize: "8"
+      SecurityGroupIds:
+      - "sg-0d4bd7bc55a999d44"
+Outputs:
+  PublicIP:
+    Value: !GetAtt [EC2Instance, PublicIp]

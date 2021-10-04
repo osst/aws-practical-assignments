@@ -11,6 +11,15 @@ Parameters:
     Type: AWS::EC2::Image::Id
     Default: ami-0c2d06d50ce30b442
 Resources:
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties: 
@@ -24,8 +33,8 @@ Resources:
           # Iops: "100"
           DeleteOnTermination: "true"
           VolumeSize: "8"
-      SecurityGroupIds:
-      - "sg-0d4bd7bc55a999d44"
+      SecurityGroups:
+      - !Ref SSHSecurityGroup
 Outputs:
   PublicIP:
     Value: !GetAtt [EC2Instance, PublicIp]

@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: os-keypair
+  InstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium]
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ami-0c2d06d50ce30b442
+  # VpcCidrBlock:
+  #   Type: String
+  #   Default: "10.0.0.0/16"
+  # PrivateCidrBlock:
+  #   Type: String
+  #   Default: "10.0.2.0/24"  
+Resources:
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+      # VpcId:
+      #    Ref: VPC
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      # VpcId: !Ref VPC
+      GroupDescription: Enable HTTP access via port 80
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+  EC2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: EC2LaunchTemplate
+      LaunchTemplateData: 
+        ImageId: !Ref 'ImageId'
+        InstanceType: !Ref 'InstanceType'
+        KeyName: !Ref 'KeyName'
+        BlockDeviceMappings: 
+        - DeviceName: "/dev/xvda"
+          Ebs: 
+            VolumeType: "gp2"
+            DeleteOnTermination: "true"
+            VolumeSize: "8"
+        SecurityGroupIds:
+        - !GetAtt SSHSecurityGroup.GroupId
+        - !GetAtt WebSecurityGroup.GroupId
+        UserData:
+          'Fn::Base64': !Sub |
+            #!/bin/bash -x
+            sudo yum -y install java-1.8.0-openjdk-devel
+  ASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: my-autoscaling-group
+      LaunchTemplate:
+        LaunchTemplateId: !Ref EC2LaunchTemplate
+        Version: !GetAtt EC2LaunchTemplate.LatestVersionNumber
+      MinSize: '1'
+      MaxSize: '2'
+      DesiredCapacity: '2'
+      HealthCheckGracePeriod: 300
+      AvailabilityZones:
+        - "us-west-2a"
+      # VPCZoneIdentifier:
+      # - Ref: PrivateSubnet
+  # VPC:
+  #   Type: AWS::EC2::VPC
+  #   Properties:
+  #     CidrBlock: !Ref VpcCidrBlock
+  #     EnableDnsSupport: 'false'
+  #     EnableDnsHostnames: 'false'
+  #     InstanceTenancy: default
+  # PrivateSubnet:
+  #   Type: AWS::EC2::Subnet
+  #   Properties:
+  #     VpcId:
+  #       Ref: VPC
+  #     CidrBlock: !Ref PrivateCidrBlock
+  #     AvailabilityZone: "us-west-2a"

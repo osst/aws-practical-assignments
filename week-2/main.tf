@@ -12,9 +12,9 @@ provider "aws" {
 }
 
 resource "aws_instance" "ec2-instance" {
-  ami             = "ami-0c2d06d50ce30b442"
-  instance_type   = "t2.micro"
-  key_name        = "os-keypair"
+  ami             = var.ec2_ami
+  instance_type   = var.ec2_instance_type
+  key_name        = var.ec2_key_name
   security_groups = [
     aws_security_group.ssh-sg.name,
     aws_security_group.web-sg.name,
@@ -23,7 +23,7 @@ resource "aws_instance" "ec2-instance" {
   iam_instance_profile = aws_iam_instance_profile.ec2-profile.name
   user_data = <<-EOF
                 #!/bin/bash
-                aws s3 cp s3://ostasenko-training-bucket/os-textfile.txt /os-textfile.txt
+                aws s3 cp s3://${var.s3_bucket_name}/${var.file_to_download} /downloaded-file.txt
               EOF 
 }
 
@@ -79,12 +79,12 @@ EOF
 
 resource "aws_iam_instance_profile" "ec2-profile" {
   name = "ec2-profile"
-  role = "${aws_iam_role.ec2-role.name}"
+  role = aws_iam_role.ec2-role.name
 }
 
 resource "aws_iam_role_policy" "s3-fullaccess-policy" {
   name = "s3-fullaccess-policy"
-  role = "${aws_iam_role.ec2-role.id}"
+  role = aws_iam_role.ec2-role.id
 
   policy = <<EOF
 {
@@ -100,4 +100,8 @@ resource "aws_iam_role_policy" "s3-fullaccess-policy" {
   ]
 }
 EOF
+}
+
+output "ec2_instance_public_ip" {
+  value = aws_instance.ec2-instance.public_ip
 }
